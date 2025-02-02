@@ -1,0 +1,460 @@
+---
+title: "Regression Battleship - Creating your Data"
+author: "Ria Noble"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r message=FALSE, warning=FALSE}
+library(pander)
+library(tidyverse)
+```
+
+# {.tabset .tabset-pills}
+
+## Instructions 
+
+Using [Desmos](https://www.desmos.com/calculator), design a "true linear regression model" that is **2D-Drawable**, and follows all other **Regression Battleship Rules** (listed below), that is of the form 
+
+$$
+  Y_i = \beta_0 + \underbrace{\quad\quad\quad\ldots\quad\quad\quad}_\text{Your Model Goes Here} + \epsilon_i \quad \text{where} \ \epsilon_i \sim N(0, \sigma^2)
+$$ 
+
+Then, use a simulation in R and your linear regression model to obtain a sample of data saved as `rbdata.csv`. 
+
+Your sample of data will be given to other students and your teacher, but this Rmd file (which contains the secret on how you made your data) will remain hidden until after the competition is complete. Your teacher and two of your peers will use the sample of data your provide, `rbdata.csv`, to try to **guess** the **true linear regression model** you used to create the data. The goal is to hide your model well enough that no one can find it, while keeping the R-squared of your data as high as possible.
+
+### Official Rules {.tabset}
+
+#### Advanced Level Competition
+
+Competing in the *Advanced Level* will allow you the opportunity to earn full credit on the Regression Battleship portion of your grade in Math 425 (which is 15% of your Final Grade). However, if you compete at this level, you cannot ever discuss your actual model with your teacher. You can still ask for help from the TA, tutors, or other students that you are not competing against. And you can ask "vague" questions to your teacher as long as it doesn't give too much away about your model.
+
+There are five official rules your model must abide by. If you break any of the rules, you will be disqualified from winning the competition and a grade penalty will result.
+
+1. Your csv file `rbdata.csv` must contain **11 columns of data**.
+    * The first column must be your (1) y-variable (labeled as `y`).
+    * The other ten columns must be (10) x-variables (labeled as `x1`, `x2`, ... , `x10`). *Please use all lower-case letters.* It does not matter which x-variables you use in your model, and you don't need to use all 10 x-variables in your model.
+   
+<br/>
+    
+2. Your **y-variable** (or some transformation of the y-variable) must have been **created from a linear regression model** using only x-variables (or transformations of those x-variables) **from** within **your data set**.
+    * Be very careful with transformations. You must ensure that you do not break the rules of a linear regression if you choose to use transformations.
+    * If you choose transformations, only these functions are allowed when transforming X and Y variables: `1/Y^2`, `1/Y`, `log(Y)`, `sqrt(Y)`, `sqrt(sqrt(Y))`, `Y^2`, `Y^3`, `1/X^2`, `1/X`, `log(X)`, `sqrt(X)`, `sqrt(sqrt(X))`, `X^2`, `X^3`, `X^4`, and `X^5`. Don't forget to check Rule #3 carefully if you choose transformations.
+
+<br/>
+    
+3. Your **sample size** must be sufficiently large so that when the true model is fit to your data using lm(...), **all p-values** of terms found in the `summary(...)` output **are significant** at the $\alpha = 0.05$ level.
+
+4. The $R^2$ value ("Multiple R-squared", not the "Adjusted R-squared") of your true model fit on your `rbdata` sample must be greater than or equal to $0.30$. The higher your $R^2$ value, the more impressive your model.
+
+5. Your true model must be **2D-drawable**. This means that it can be drawn in both Desmos and with a single 2D scatterplot in R.
+
+<br/>
+<br/>
+
+
+#### Intermediate Level Competition
+
+Competing in the *Intermediate Level* will **only** allow you to earn **up to 88%** of the full credit that is possible on the Regression Battleship portion of your grade in Math 425 (which is 15% of your Final Grade). *However, getting 88% of the grade is better than failing* the advanced level competition and getting 0% of the Regression Battleship grade. So choose this option if you are not feeling comfortable with your abilities to compete at the Advanced Level. The good news is that if you choose this option, your teacher can help you with your model to make sure everything is correct before you turn it in.
+
+For the Intermediate Level competition, there are also five official rules your model must abide by. If you break any of the rules, you will be disqualified from winning the Intermediate Level competition and a point penalty will be applied to your grade.
+
+1. Your csv file `rbdata.csv` must contain **6 columns of data**.
+    * The first column must be your (1) y-variable (labeled as `y`).
+    * The other five columns must be (5) x-variables (labeled as `x1`, `x2`, `x3`, `x4` , `x5`). *Please use all lower-case letters.* It does not matter which x-variables you use in your model, and you don't need to use all 5 x-variables in your model.
+   
+<br/>
+    
+2. Your **y-variable** must have been **created from a linear regression model** using only x-variables **from** within **your data set**.
+    * No transformations of y-variables or x-variables are allowed in the Intermediate Level competition.
+
+<br/>
+    
+3. Your **sample size** must be sufficiently large so that when the true model is fit to your data using lm(...), **all p-values** of terms found in the `summary(...)` output **are significant** at the $\alpha = 0.05$ level.
+
+4. The $R^2$ value ("Multiple R-squared", not the "Adjusted R-squared") of your true model fit on your `rbdata` sample must be greater than or equal to $0.80$.
+
+5. Your true model must be **2D-drawable**. This means that it can be drawn in Desmos and with a single 2D scatterplot in R.
+
+<br/>
+<br/>
+
+
+
+## Desmos 
+
+Start by creating a picture of your true model in Desmos. Snip a screenshot of your completed model. Include a picture of your Desmos graph showing your true model.
+
+![](Pictures/Screenshot 2023-06-08 174315.png) 
+
+and delete this line for the image code above to work. --> 
+
+
+## Code
+
+Use the R-chunks below to create your simulated sample of data from your true regression model.
+
+
+```{r, comment=NA}
+set.seed(122) #This ensures the randomness is the "same" everytime if you play the entire R-chunk as one entire piece of code. If you run lines separately, your data might not come out the same every time. You can pick any integer value you want for set.seed. Each choice produces a different sample, so you might want to play around with a few different choices.
+
+## To begin, decide on your sample size. (You may have to revise it later to ensure all values in your lm(...) are significant.)
+  
+ n <- 2000
+  
+## Then, create 10 X-variables using functions like rnorm(n, mean, sd), rchisq(n, df), rf(n, df1, df2), rt(n, df), rbeta(n, a, b), runif(n, a, b) or sample(c(1,0), n, replace=TRUE)... ## To see what any of these functions do, run codes like hist(rchisq(n, 3)). These functions are simply allowing you to get a random sample of x-values. But the way you choose your x-values can have quite an impact on what the final scatterplot of the data will look like.
+
+ x1 <- runif(n, -1.067, 1.327) #true x-variable
+ x2 <- sample(c(0,1), n, replace = TRUE) #true first on-off switch
+ x3 <- sample(c(0,1), n, replace = TRUE, prob = c(0.9, 0.1)) #true second on-off switch
+ x4 <- sample(c(0,1), n, replace = TRUE) #true third on-off switch
+ x5 <- sample(c(0,1), n, replace = TRUE) #fake first on-off switch
+ x6 <- sample(c(0,1), n, replace = TRUE) #fake second on-off switch
+ x7 <- runif(n, -2, 5) #first fake x-variable
+ x8 <- sample(c(0,1), n, replace = TRUE) #fake third on-off switch
+ x9 <- runif(n, -1.067, 1.327) #fake second x-variable
+ x10 <- runif (n, 0, 0.5) #fake third x-variable
+ 
+ x3[x2==1] <-0
+ x4[x2==1 | x3==1] <-0
+ x6[x2==1 | x3==1 | x4==1] <-0
+ x8[x2==1 | x3==1 | x4==1 | x6==1] <-0
+
+ 
+## Then, create betas, sigma, normal error terms and y
+ 
+ beta0 <- -0.3
+ beta1 <- -0.6
+ beta2 <- 1
+ beta3 <- 0.5
+ beta4 <- -0.6
+ beta5 <- -0.15
+ beta6 <- 0.6
+ beta7 <- 1.2
+ beta8 <- -2
+ beta9 <- -1
+ beta10 <- 1.2
+ beta11 <- -0.18
+ beta12 <- 0.3
+ beta13 <- 0.7
+ beta14 <- -1
+ beta15 <- -0.5
+ beta16 <- 0.6
+ beta17 <- 0.03
+ beta18 <- 0.3
+ beta19 <- 0.5
+ beta20 <- -1
+ beta21 <- -0.5
+ beta22 <- 0.6
+ 
+ sigma <- 0.125 #change to whatever positive number you want
+ 
+
+ ################################
+ # You ARE NOT ALLOWED to change this part:
+ epsilon_i <- rnorm(n, 0, sigma)
+ ################################ 
+ 
+ #An example of how to make Y...
+ # y <-  beta0 + beta1*X1 + beta2*X2 + beta3*X4*X2 + epsilon_i
+ 
+ y <- beta0*x1 + beta1*(x1^2) + beta2*(x1^3) + beta3*(x1^4) + beta4*(x1^5) + # red quintic function
+ beta5*x2 + beta6*x1*x2 + beta7*(x1^2)*x2 + beta8*(x1^3)*x2 + beta9*(x1^4)*x2 + beta10*(x1^5)*x2 + #  blue quintic function
+ beta11*x3 + beta12*x1*x3 + beta13*(x1^2)*x3 + beta14*x1^3*x3 + beta15*x1^4*x3 + beta16*x1^5*x3 + # purple quadratic function
+ beta17*x4 + beta18*x1*x4 + beta19*(x1^2)*x4 + beta20*x1^3*x4 + beta21*x1^4*x4 + beta22*x1^5*x4 + # green quadratic function
+ epsilon_i
+ 
+ ## Now, you need to load your x-variables and y-variable 
+ ## into a data set.
+ # You can include Y' or X' instead of Y or X if you wish.
+ # Remember, only these functions are allowed when transforming
+ # variables: 1/Y^2, 1/Y, log(Y), sqrt(Y), sqrt(sqrt(Y)), Y^2, Y^3, 1/X^2, 1/X, log(X), sqrt(X), sqrt(sqrt(X)), X^2, X^3, X^4, X^5. 
+ #########################################################
+ # ILLEGAL: Y = (beta0 + beta1*X5)^2 + epsilon_i #########
+ #########################################################
+ # Legal: sqrt(Y) = beta0 + beta1*X5^2 + epsilon_i #######
+ #########################################################
+ # You can only transform individual terms, not groups of terms.
+ # And the beta's cannot be part of the x-transformations.
+
+ #x1 <- 1/x1
+ #x7 <- 1/x7
+ #x9 <- (x9)^2
+ #x10 <- 1/x10
+ 
+ # This loads your data into a data set:
+ rbdata <- data.frame(y, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+ 
+ #Now fit your model to make sure it comes out significant:
+ mylm <- lm(y ~ x1 + I(x1^2) + I(x1^3) + I(x1^4) + I(x1^5) + x2 + x1:x2 + I(x1^2)*x2 + I(x1^3):x2 + I(x1^4):x2 + I(x1^5):x2 + x3 + x1:x3 + I(x1^2):x3 + I(x1^3):x3 + I(x1^4):x3 + I(x1^5):x3 + x4 + x1:x4 + I(x1^2):x4 + I(x1^3):x4 + I(x1^4):x4 + I(x1^5):x4, data=rbdata)
+ 
+ summary(mylm)
+ #all p-values must be significant
+ #the R^2 value must be greater than or equal to 0.30.
+
+# Once you are done with creating your model, and have successfully
+# graphed it (see below), un-comment the following `write.csv` code,
+# then, PLAY this ENTIRE R-chunk to write your data to a csv.
+
+ #write.csv(rbdata, "rbdata.csv", row.names=FALSE)
+
+# The above code writes the dataset to your "current directory"
+# To see where that is, use: getwd() in your Console.
+# Find the rbdata.csv data set and upload it to I-Learn.
+```
+
+
+
+
+
+
+## R Plot
+
+Provide a 2D scatterplot that shows both your *true* model (dashed lines) and *estimated* model (solid lines) on the same scatterplot. This should match your Desmos graph. 
+
+```{r}
+b <- coef(mylm)
+x <- x1
+
+#palette(c("red", "blue", "purple", "green"))
+#plot(y ~ x1, data = rbdata, xlim = c(-1.067, 1.327), ylim = c(-0.8, 0.8), col = interaction(as.factor(x2), as.factor(x3), as.factor(x4)))
+#plot(y ~ x1, data = rbdata, xlim = c(-1.067, 1.327), ylim = c(-0.8, 0.8), col = x3)
+#curve(b[1] + b[2]*x + b[3]*(x^2) + b[4]*(x^3) + b[5]*(x^4) + b[6]*(x^5), col = 'red', lwd = 2, add = TRUE) # red quintic function
+#curve(b[7] + b[1] + (b[2] + b[10])*x + (b[11] + b[3])*(x^2) + (b[4] + b[12])*(x^3) + (b[5] + b[13])*(x^4) + (b[6] + b[14])*(x^5), add = TRUE, col = 'blue', lwd = 2) #  blue quintic function
+#curve(b[8] + b[1] + (b[3] + b[16])*(x^2), add = TRUE, col = 'purple', lwd = 2) # purple quadratic function
+#curve(b[1] + b[9] + (b[2] + b[20])*x + (b[3] + b[21])*(x^2) + (b[4] + b[22])*x^3 + (b[5] + b[23])*x^4 + (b[6] + b[24])*x^5, add = TRUE, col = 'green', lwd = 2)
+
+ggplot(rbdata, aes(x = x1, y = y, color = interaction(factor(x2), factor(x3), factor(x4)))) +
+  geom_point() +
+  scale_color_manual(values = c('red', 'blue', 'purple', 'green')) +
+  stat_function(fun = function(x) b[1] + b[2]*x + b[3]*(x^2) + b[4]*(x^3) + b[5]*(x^4) + b[6]*(x^5), col = 'red', lwd = 1) +
+  stat_function(fun = function(x) b[7] + b[1] + (b[2] + b[10])*x + (b[11] + b[3])*(x^2) + (b[4] + b[12])*(x^3) + (b[5] + b[13])*(x^4) + (b[6] + b[14])*(x^5), col = 'blue', lwd = 1) +
+  stat_function(fun = function(x) b[1] + b[9] + (b[2] + b[20])*x + (b[3] + b[21])*(x^2) + (b[4] + b[22])*x^3 + (b[5] + b[23])*x^4 + (b[6] + b[24])*x^5, col = 'green', lwd = 1)
+
+#pairs(rbdata, panel = panel.smooth, col = interaction(as.factor(x2), as.factor(x3), as.factor(x4), as.factor(x6), as.factor(x8)))
+
+#pairs(rbdata, panel = panel.smooth)
+```
+
+## Math Model
+
+Write out your "true" model in mathematical form. Make sure it matches your code. This could be "painful" if you chose a complicated model.
+
+$$
+  Y_i = \beta_0 X_{1i} + \beta_1 X_{1i}^2 + \beta_2 X_{1i}^3 + \beta_3 X_{1i}^4 + \beta_4 X_{1i}^5 + \beta_5 X_{2i} + \beta_6 X_{1i} X_{2i} + \beta_7 X_{1i}^2 X_{2i} + \beta_8 X_{1i}^3 X_{2i} + \beta_9 X_{1i}^4 X_{2i} + \beta_{10} X_{1i}^5 X_{2i} + \\ \beta_{11} X_{3i} + \beta_{12} X_{1i} X_{3i} + \beta_{13} X_{1i}^2 X_{3i} + \beta_{14} X_{1i}^3 X_{3i} + \beta_{15} X_{1i}^4 X_{3i} + \beta_{16} X_{1i}^5 X_{3i} + \beta_{17} X_{4i} + \beta_{18} X_{1i} X_{4i} + \beta_{19} X_{1i}^2 X_{4i} + \beta_{20} X_{1i}^3 X_{4i} + \beta_{21} X_{1i}^4 X_{4i} + \\ \beta_{22} X_{1i}^5 X_{4i} + \epsilon_i
+$$
+$$
+  Y_i = -0.3 X_{1i} - 0.6 X_{1i}^2 + X_{1i}^3 + 0.5 X_{1i}^4 - 0.6 X_{1i}^5 - 0.15 X_{2i} + 0.6 X_{1i} X_{2i} + 1.2 X_{1i}^2 X_{2i} - 2 X_{1i}^3 X_{2i} - X_{1i}^4 X_{2i} + 1.2 X_{1i}^5 X_{2i} - \\ 0.18 X_{3i} + 0.3 X_{1i} X_{3i} + 0.7 X_{1i}^2 X_{3i} - X_{1i}^3 X_{3i} - 0.5 X_{1i}^4 X_{3i} + 0.6 X_{1i}^5 X_{3i} + 0.03 X_{4i} + 0.3 X_{1i} X_{4i} + 0.5 X_{1i}^2 X_{4i} - X_{1i}^3 X_{4i} -0.5 X_{1i}^4 X_{4i} + 0.6 X_{1i}^5 X_{4i} + \epsilon_i
+$$
+
+
+## Results
+
+Once the Regression Battleship competition is completed, you will be given instructions on how to complete this section. The basic idea is to compare the three guesses at your true model (from two peers, and your teacher) to decide who won (i.e., who had the closest guess).
+
+```{r}
+set.seed(285) #This ensures the randomness is the "same" everytime if you play the entire R-chunk as one entire piece of code. If you run lines separately, your data might not come out the same every time. You can pick any integer value you want for set.seed. Each choice produces a different sample, so you might want to play around with a few different choices.
+
+## To begin, decide on your sample size. (You may have to revise it later to ensure all values in your lm(...) are significant.)
+  
+ n <- 2000
+  
+## Then, create 10 X-variables using functions like rnorm(n, mean, sd), rchisq(n, df), rf(n, df1, df2), rt(n, df), rbeta(n, a, b), runif(n, a, b) or sample(c(1,0), n, replace=TRUE)... ## To see what any of these functions do, run codes like hist(rchisq(n, 3)). These functions are simply allowing you to get a random sample of x-values. But the way you choose your x-values can have quite an impact on what the final scatterplot of the data will look like.
+
+ x1 <- runif(n, -1.067, 1.327) #true x-variable
+ x2 <- sample(c(0,1), n, replace = TRUE) #true first on-off switch
+ x3 <- sample(c(0,1), n, replace = TRUE, prob = c(0.9, 0.1)) #true second on-off switch
+ x4 <- sample(c(0,1), n, replace = TRUE) #true third on-off switch
+ x5 <- sample(c(0,1), n, replace = TRUE) #fake first on-off switch
+ x6 <- sample(c(0,1), n, replace = TRUE) #fake second on-off switch
+ x7 <- runif(n, -2, 5) #first fake x-variable
+ x8 <- sample(c(0,1), n, replace = TRUE) #fake third on-off switch
+ x9 <- runif(n, -1.067, 1.327) #fake second x-variable
+ x10 <- runif (n, 0, 0.5) #fake third x-variable
+ 
+ x3[x2==1] <-0
+ x4[x2==1 | x3==1] <-0
+ x6[x2==1 | x3==1 | x4==1] <-0
+ x8[x2==1 | x3==1 | x4==1 | x6==1] <-0
+
+ 
+## Then, create betas, sigma, normal error terms and y
+ 
+ beta0 <- -0.3
+ beta1 <- -0.6
+ beta2 <- 1
+ beta3 <- 0.5
+ beta4 <- -0.6
+ beta5 <- -0.15
+ beta6 <- 0.6
+ beta7 <- 1.2
+ beta8 <- -2
+ beta9 <- -1
+ beta10 <- 1.2
+ beta11 <- -0.18
+ beta12 <- 0.3
+ beta13 <- 0.7
+ beta14 <- -1
+ beta15 <- -0.5
+ beta16 <- 0.6
+ beta17 <- 0.03
+ beta18 <- 0.3
+ beta19 <- 0.5
+ beta20 <- -1
+ beta21 <- -0.5
+ beta22 <- 0.6
+ 
+ sigma <- 0.125 #change to whatever positive number you want
+ 
+
+ ################################
+ # You ARE NOT ALLOWED to change this part:
+ epsilon_i <- rnorm(n, 0, sigma)
+ ################################ 
+ 
+ #An example of how to make Y...
+ # y <-  beta0 + beta1*X1 + beta2*X2 + beta3*X4*X2 + epsilon_i
+ 
+ y <- beta0*x1 + beta1*(x1^2) + beta2*(x1^3) + beta3*(x1^4) + beta4*(x1^5) + # red quintic function
+ beta5*x2 + beta6*x1*x2 + beta7*(x1^2)*x2 + beta8*(x1^3)*x2 + beta9*(x1^4)*x2 + beta10*(x1^5)*x2 + #  blue quintic function
+ beta11*x3 + beta12*x1*x3 + beta13*(x1^2)*x3 + beta14*x1^3*x3 + beta15*x1^4*x3 + beta16*x1^5*x3 + # purple quadratic function
+ beta17*x4 + beta18*x1*x4 + beta19*(x1^2)*x4 + beta20*x1^3*x4 + beta21*x1^4*x4 + beta22*x1^5*x4 + # green quadratic function
+ epsilon_i
+ 
+ ## Now, you need to load your x-variables and y-variable 
+ ## into a data set.
+ # You can include Y' or X' instead of Y or X if you wish.
+ # Remember, only these functions are allowed when transforming
+ # variables: 1/Y^2, 1/Y, log(Y), sqrt(Y), sqrt(sqrt(Y)), Y^2, Y^3, 1/X^2, 1/X, log(X), sqrt(X), sqrt(sqrt(X)), X^2, X^3, X^4, X^5. 
+ #########################################################
+ # ILLEGAL: Y = (beta0 + beta1*X5)^2 + epsilon_i #########
+ #########################################################
+ # Legal: sqrt(Y) = beta0 + beta1*X5^2 + epsilon_i #######
+ #########################################################
+ # You can only transform individual terms, not groups of terms.
+ # And the beta's cannot be part of the x-transformations.
+
+ #x1 <- 1/x1
+ #x7 <- 1/x7
+ #x9 <- (x9)^2
+ #x10 <- 1/x10
+ 
+ # This loads your data into a data set:
+ rbdata2 <- data.frame(y, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+```
+ 
+```{r}
+ truelm <- lm(y ~ x1 + I(x1^2) + I(x1^3) + I(x1^4) + I(x1^5) + x2 + x1:x2 + I(x1^2)*x2 + I(x1^3):x2 + I(x1^4):x2 + I(x1^5):x2 + x3 + x1:x3 + I(x1^2):x3 + I(x1^3):x3 + I(x1^4):x3 + I(x1^5):x3 + x4 + x1:x4 + I(x1^2):x4 + I(x1^3):x4 + I(x1^4):x4 + I(x1^5):x4, data=rbdata)
+ saunderslm <- lm(y ~ x1 + I(x1^2) + I(x1^3)  + I(x1^4) +  I(x1^5) + x2 + x2:x1 + x2:I(x1^2) + x2:I(x1^3) + x2:I(x1^4) + x2:I(x1^5) + x3 +   x3:x1 + x3:I(x1^2) + x3:I(x1^3)  + x3:I(x1^4) + x3:I(x1^5) + x4 + x4:x1 + x4:I(x1^2) + x4:I(x1^3) + x4:I(x1^4) + x4:I(x1^5), data=rbdata)
+ bridgerlm <- lm(y ~ x10 +x4 +x2, data = rbdata)
+ davidlm <- lm(y ~ x1 + I(x1^2) + I(x1^3) + I(x1^4) + I(x1^5) + x2 + x1:x2 + I(x1^2):x2 + I(x1^3):x2 + I(x1^4):x2 + I(x1^5):x2 + x4 + x1:x4 + I(x1^3):x4 + I(x1^4):x4 + I(x1^5):x4 + x6 + x8 + I(x1^2):x8 + I(x1^4):x8)
+ 
+ yhtrue <- predict(truelm, newdata=rbdata2)
+ yhsaunders <- predict(saunderslm, newdata=rbdata2)
+ yhbridger <- predict(bridgerlm, newdata=rbdata2)
+ yhdavid <- predict(davidlm, newdata=rbdata2)
+  
+  # Compute y-bar
+  ybar <- mean(rbdata2$y) #Yi is given by Ynew from the new sample of data
+  
+  # Compute SSTO
+  SSTO <- sum( (rbdata2$y - ybar)^2 )
+  
+  # Compute SSE for each model using y - yhat
+  SSEt <- sum( (rbdata2$y - yhtrue)^2 )
+  SSEs <- sum( (rbdata2$y - yhsaunders)^2 )
+  SSEb <- sum( (rbdata2$y - yhbridger)^2 )
+  SSEd <- sum( (rbdata2$y - yhdavid)^2 )
+
+  
+  # Compute R-squared for each
+  rst <- 1 - SSEt/SSTO
+  rss <- 1 - SSEs/SSTO
+  rsb <- 1 - SSEb/SSTO
+  rsd <- 1 - SSEd/SSTO
+  
+  # Compute adjusted R-squared for each
+  n <- length(rbdata2$y) #sample size
+  pt <- length(coef(truelm)) #num. parameters in model
+  ps <- length(coef(saunderslm)) #num. parameters in model
+  pb <- length(coef(bridgerlm)) #num. parameters in model
+  pd <- length(coef(davidlm)) #num. parameters in model
+  rsta <- 1 - (n-1)/(n-pt)*SSEt/SSTO
+  rssa <- 1 - (n-1)/(n-ps)*SSEs/SSTO
+  rsba <- 1 - (n-1)/(n-pb)*SSEb/SSTO
+  rsda <- 1 - (n-1)/(n-pd)*SSEd/SSTO
+  
+
+my_output_table2 <- data.frame(Model = c("True", "Saunders", "Bridger", "David"), `Original R2` = c(summary(truelm)$r.squared, summary(saunderslm)$r.squared, summary(bridgerlm)$r.squared, summary(davidlm)$r.squared), `Orig. Adj. R-squared` = c(summary(truelm)$adj.r.squared, summary(saunderslm)$adj.r.squared, summary(bridgerlm)$adj.r.squared, summary(davidlm)$adj.r.squared), `Validation R-squared` = c(rst, rss, rsb, rsd), `Validation Adj. R^2` = c(rsta, rssa, rsba, rsda))
+
+colnames(my_output_table2) <- c("Model", "Original $R^2$", "Original Adj. $R^2$", "Validation $R^2$", "Validation Adj. $R^2$")
+
+knitr::kable(my_output_table2, escape=TRUE, digits=4)
+```
+
+Below are the model results for Brother Saunders, Bridger, and David respectively:
+
+```{r}
+summary(saunderslm)
+summary(bridgerlm)
+summary(davidlm)
+```
+
+Brother Saunders' model had the best validation adjusted R-squared, which is also exactly the validation adjusted R-squared for the original model.
+
+*My True Model (and also Brother Saunders' model):*
+
+Below are the confidence intervals for my model and Brother Saunders' model respectively. It looks like his model accurately captured my true parameters.
+
+```{r}
+
+confint(mylm)
+confint(saunderslm)
+
+b <- coef(mylm)
+x <- x1
+ggplot(rbdata2, aes(x = x1, y = y, color = interaction(factor(x2), factor(x3), factor(x4)))) +
+  geom_point() +
+  scale_color_manual(values = c('red', 'blue', 'purple', 'green')) +
+  stat_function(fun = function(x) b[1] + b[2]*x + b[3]*(x^2) + b[4]*(x^3) + b[5]*(x^4) + b[6]*(x^5), col = 'red', lwd = 1) +
+  stat_function(fun = function(x) b[7] + b[1] + (b[2] + b[10])*x + (b[11] + b[3])*(x^2) + (b[4] + b[12])*(x^3) + (b[5] + b[13])*(x^4) + (b[6] + b[14])*(x^5), col = 'blue', lwd = 1) +
+  stat_function(fun = function(x) b[1] + b[9] + (b[2] + b[20])*x + (b[3] + b[21])*(x^2) + (b[4] + b[22])*x^3 + (b[5] + b[23])*x^4 + (b[6] + b[24])*x^5, col = 'green', lwd = 1) +
+  stat_function(fun = function(x) b[8] + b[1] + (b[15] + b[2])*x + (b[3] + b[16])*(x^2) + (b[17] + b[4])*x^3 + (b[18] + b[5])*x^4 + (b[19] + b[6])*x^5, col = 'purple', lwd = 1)
+```
+
+*Bridger's Model:*
+
+```{r}
+b <- coef(bridgerlm)
+x <- x1
+ggplot(rbdata2, aes(x = x10, y = y, color = interaction(factor(x2), factor(x3), factor(x4)))) +
+  geom_point() +
+  scale_color_manual(values = c('red', 'blue', 'purple', 'green')) +
+  stat_function(fun = function(x) b[1] + b[2]*x, col = 'red', lwd = 1) +
+  stat_function(fun = function(x) b[1] + b[3] + b[2]*x, col = 'blue', lwd = 1) +
+  stat_function(fun = function(x) b[1] + b[4] + b[2]*x, col = 'green', lwd = 1)
+```
+
+*David's Model:*
+
+```{r}
+b <- coef(davidlm)
+x <- x1
+ggplot(rbdata2, aes(x = x1, y = y, color = interaction(factor(x2), factor(x3), factor(x4)))) +
+  geom_point() +
+  scale_color_manual(values = c('red', 'blue', 'purple', 'green')) +
+  stat_function(fun = function(x) b[1] + b[2]*x + b[3]*(x^2) + b[4]*(x^3) + b[5]*(x^4) + b[6]*(x^5), col = 'red', lwd = 1) +
+  stat_function(fun = function(x) b[7] + b[1] + (b[2] + b[11])*x + (b[12] + b[3])*(x^2) + (b[4] + b[13])*(x^3) + (b[5] + b[14])*(x^4) + (b[6] + b[15])*(x^5), col = 'blue', lwd = 1) +
+  stat_function(fun = function(x) b[1] + b[8] + (b[2] + b[16])*x + b[3]*x^2 + (b[4] + b[17])*x^3 + (b[5] + b[18])*x^4 + (b[6] + b[19])*x^5, col = 'green', lwd = 1) +
+  stat_function(fun = function(x) b[9] + b[1] + b[2]*x + b[3]*(x^2) + b[4]*x^3 + b[5]*x^4 + b[6]*x^5, col = 'purple', lwd = 1) +
+  stat_function(fun = function(x) b[10] + b[1] + b[2]*x + (b[3] + b[20])*(x^2) + (b[4])*x^3 + (b[5] + b[21])*x^4 + (b[6])*x^5, col = 'orange', lwd = 1)
+```
+
+
+
+ 
+
+ 
