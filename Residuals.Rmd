@@ -1,0 +1,239 @@
+---
+title: "Residuals"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+date: "2023-04-24"
+---
+
+```{r, warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(broom)
+library(pander)
+AvgWeather <- read_excel("Data/AvgWeathers.xlsx")
+View(AvgWeather)
+```
+
+
+## Intro
+
+For this study, we will be using a data set called 'AvgWeather'. It sets previous days' high temperatures to the high temperature of a day of interest.
+
+## Residuals
+
+A residual is the difference between $Y_i$ (an individual dot) and $\hat{Y_i}$ (the prediction line). Every data point in a linear regression has a residual. A single residual tells us how far off one dot is from the prediction line at its particular x-value.
+
+The formula for an individual residual is as follows:
+
+$$
+  r_i = \underbrace{Y_i}_\text{Observed Y-value}-\underbrace{\hat{Y_i}}_\text{Predicted Y-value}
+$$
+
+$$
+\underbrace{79}_\text{Observed Y-value} - \underbrace{59.67}_\text{Predicted Y-value} = \underbrace{19.33}_\text{Residual}
+$$
+
+Unlike popular belief, residuals are not error terms. They are only the difference between the observed and the predicted, while error is the difference between the observed and the true value. Therefore, residuals are an attempt to estimate the error terms.
+
+In a linear regression, residuals are used in the place of error terms to define the fitness of a linear regression to the data. They are used in the residuals vs fitted-values plot, Q-Q plot of residuals, and the residuals vs order plot. These are all analyzed to determine whether the regression is appropriate and the predictions are valid. In the example below, we can see in the residuals vs. fitted plot that the model may not be a great fit for the data.
+
+```{r, warning=FALSE, message=FALSE}
+w.lm <- lm(RealHigh ~ AvgHigh, data = AvgWeather)
+par(mfrow = c(1,3))
+plot(w.lm, which = 1:2)
+plot(w.lm$residuals)
+```
+
+In terms of the data set, the single residual for a predicted value tells us the difference between the predicted value (the line) and the dot at its x-value. This would indicate how accurate the prediction is in terms of your test results (which would still harbor some error).
+
+```{r, warning=FALSE, message=FALSE}
+#w.lm <- lm(RealHigh ~ AvgHigh, data = AvgWeather) %>%
+#  augment()%>%
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE) +
+  geom_segment(aes(x = AvgHigh, xend = AvgHigh, y = w.lm$fit, yend = RealHigh)) +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+```
+
+Residuals can be any real number, positive or negative. Positive residuals indicate that the prediction line underestimated, and vice-versa. It simply goes that the larger the positive/negative residual, the further it is from the line (Y-hat).
+
+## SSE
+
+SSE stands for 'sum of squared errors', meaning that it is calculated by squaring every residual in the data and adding them together.
+
+As you can see in its equation, it uses the equation for a residual, to add up every squared residual.
+
+$$
+  SSE = \sum_{i = 1}^{n}(\underbrace{Y_i}_\text{Observed Y-value} - \underbrace{\hat{Y_i}}_\text{Predicted Y-value})^2
+$$
+
+$$
+  \underbrace{638.8409}_\text{SSE} = \underbrace{\sum_{i = 1}^{11}(Y_i - \hat{Y_i})^2}_\text{Every Squared Residual}
+$$
+
+The SSE can also be obtained by subtracting the SSR from the SSTO.
+
+The SSE measures the amount of deviation of the dots from the line. It is always a positive measurement, since it adds the squares of the residuals, so the lowest measurement possible is 0, while there is virtually no limit for high values. An SSE of 0 tells us that all the dots are on the line, so realistically, a value of 0 is not possible.
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE) +
+  geom_rect(aes(xmin = AvgHigh - (RealHigh - w.lm$fit), xmax = AvgHigh, ymin = w.lm$fit, ymax = RealHigh), alpha = 0.1) +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+
+SSE <- sum( w.lm$res^2 )
+```
+
+When SSE is large, or close to the SSTO, then it indicates that the line is a poor fit for the data, while a small SSE indicates that the line is a great fit.
+
+Since the SSE is a measurement using the residuals, which attempt to simulate errors, it is considered the component of the total variation that cannot be explained.
+
+The SSE for this linear regression is 638.84.
+
+## SSR
+
+SSR stands for 'Sum of Squares Regression', and it measures the deviation of the prediction line from the average y-value of the data set. It is a measure of variability as well as a measure of slope.
+
+The SSR is calculated by taking distances between the prediction line and the average y-value at each x-value any point is on. Then, we square each of these distances and add them up.
+
+In the equation, the line is subtracted by the mean Y-value, squared, and added up.
+
+$$
+  SSR = \sum_{i = 1}^{n}(\underbrace{\hat{Y_i}}_\text{Predicted Y-value} - \underbrace{\bar{Y}}_\text{Average Y-value})^2
+$$
+
+$$
+  \underbrace{75.3409}_\text{SSR} = \underbrace{\sum_{i = 1}^{11}(\hat{Y_i} - \bar{Y})^2}_\text{Each Diff. Between Regression Line and Average}
+$$
+
+The SSR can also be obtained by subtracting the SSE from the SSTO.
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE) +
+  geom_hline(yintercept = 58.72, color = 'grey', size = 1, linetype = 2) +
+  geom_rect(aes(xmin = AvgHigh - (w.lm$fit - 58.72), xmax = AvgHigh, ymin = w.lm$fit, ymax = 58.72), alpha = 0.1) +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+
+SSR <- sum( (w.lm$fit - mean(AvgWeather$RealHigh))^2 )
+```
+
+The smallest value possible is 0, which can only be obtained if the slope of the prediction line is 0. The highest possible value has no limit. When the SSR is small, it indicates a poor fit, and vice-versa. The best case scenario for fit is a high SSR and a low SSE.
+
+The SSR is also considered the component of the total variation that can be explained.
+
+The SSR for this linear regression is 75.34.
+
+## SSTO
+
+SSTO stands for 'Total Sum of Squares'. It is also called the total variation in the data. It measures the deviation of the dots from the average Y-value (the horizontal line).
+
+SSTO is found by taking each distance from a point to the average Y-value, squaring them, and adding them all up. This is presented in a formula:
+
+$$
+  SSTO = \sum_{i = 1}^{n}(\underbrace{Y_i}_\text{Observed Y-value} - \underbrace{\bar{Y_i}}_\text{Average Y-value})
+$$
+
+$$
+  \underbrace{714.1818}_\text{SSTO} = \sum_{i = 1}^{11}\underbrace{(Y_i - \bar{Y_i})}_\text{Each Diff Between Obs. Y and Average Y}
+$$
+
+It can also be found by adding the SSE and SSR.
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  geom_hline(yintercept = 58.72, color = 'grey', size = 1) +
+  geom_rect(aes(xmin = AvgHigh - (RealHigh - 58.72), xmax = AvgHigh, ymin = RealHigh, ymax = 58.72), alpha = 0.1) +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+
+SSTO <- SSE + SSR
+```
+
+The lowest number possible is 0, which would require all the dots to land on the average y value. There is no limit to how big the number can get, but it is always positive.
+
+There is not any particular number range we want the SSTO to be. Instead, we focus more on its relationship with the SSE and SSR. The best fit is characterized by a small SSE and an SSR close to the SSTO.
+
+The SSTO for this linear regression is 714.18.
+
+## Comparing SSE, SSR, and SSTO
+
+As previously stated, SSE and SSR add up to SSTO, also establishing their relationship with each other.
+
+```{r, warning=FALSE, message=FALSE}
+View(AvgWeather)
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE) +
+  geom_hline(yintercept = 58.72, color = 'grey', size = 1, linetype = 2) +
+  geom_segment(aes(x = AvgHigh, xend = AvgHigh, y = 58.72, yend = RealHigh), linetype = 2, col = 'grey') +
+  geom_segment(aes(x = AvgHigh -0.15, xend = AvgHigh - 0.15, y = 58.72, yend = w.lm$fit), col = 'black') +
+  geom_segment(aes(x = AvgHigh -0.1, xend = AvgHigh - 0.1, y = RealHigh, yend = w.lm$fit), col = 'cornflowerblue') +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+
+pander(summary(w.lm))
+```
+
+The high SSE and low SSR indicates that this linear regression is a poor fit for the data.
+
+## R-squared
+
+R-squared, put simply, is a measure of variance. Specifically, it is the proportion of variance that is understood. R-squared can be found by:
+
+$$
+  R^2=\frac{SSR}{SSTO} = 1 - \frac{SSE}{SSTO}
+$$
+
+It is also the correlation squared, which makes for a stricter definition of explained variability.
+
+The definition "The proportion of variability in Y that can be explained by the regression" is pretty much the first definition, but we will go deeper with this one. For each distance between the dots and the average Y value (SSTO), there is a component that can be explained by the line's deviation (SSR) and a component that cannot (SSE), and is accredited to errors. The R-squared puts the explained variability over the total variability, giving a number between 0 and 1 that describes the proportion that is explained. We want the number to be close to 1 because that tells us that the data has less unexplained variance. A small amount of unexplained variance indicates a good fit.
+
+```{r, warning=FALSE, message=FALSE}
+R2 <- SSR/SSTO
+```
+
+Unlike the p-value for the slope term, R-squared is a stricter measure of explained variance and how well the fit of the data is.
+
+The R-squared for this regression is 0.11, which indicates high variability and low correlation in the data.
+
+## MSE & "Residual Standard Error"
+
+MSE stands for 'mean squared error', and is the average squared residual (estimate of error). In short the formula takes the SSE and divides it by the degrees of freedom, as shown:
+
+$$
+  s^2 = MSE = \frac{SSE}{n-2} =\frac{\sum(Y_i - \hat{Y_i})^2}{n - 2} = \frac{\sum r_i^2}{n-2}
+$$
+
+MSE is also an estimator of $\sigma^2$. The smallest value it can be is 0, which is pretty much impossible. There is no limit to how high it can be, but the higher it is, the more spread out the data is.
+
+The MSE measures how accurate the model is in predicting the entire data set, while R-squared measures the fit of the data. However, it is related to R-squared in the fact that they have formulas that utilize the SSE (or the relationship between SSR and SSE).
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(data = AvgWeather, aes(x = AvgHigh, y = RealHigh)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE) +
+  geom_rect(aes(xmin = AvgHigh - (RealHigh - w.lm$fit), xmax = AvgHigh, ymin = w.lm$fit, ymax = RealHigh), alpha = 0.1) +
+  labs(title = 'Trend Between Average High Temps and High Temp on April 24th', x = 'Average High Temp Between April 17th - 19th', y = 'Real High Temp on April 24th')
+
+pander(summary(w.lm))
+```
+
+The residual standard error is the square root of R-squared, which is already stated to be related to the MSE. It can be found under the slope/intercept estimates and is labeled as 'residual standard error'. We want both the MSE and residual standard error to be high, because they indicate that the regression model is a good fit and is good at prediction. This can be seen in the summary above.
+
+Residual standard error ranges between 0 and 1, as it is a proportion. MSE can range from 0 to no limit, as it is the average squared error (residual). R-squared has the same units as MSE, but it is a much larger number because it is the total of the squares, not an average. So, in a way, R-squares and MSE are in degrees squared with this data, while residual standard error is just in degrees Fahrenheit.
+

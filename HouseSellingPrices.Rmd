@@ -1,0 +1,396 @@
+---
+title: "House Selling Prices"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+# {.tabset}
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(pander)
+library(directlabels)
+library(car)
+library(DT)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Mutating the Data
+
+```{r, warning = FALSE, message = FALSE}
+train <- read.csv("Data/train.csv", header = TRUE)
+                  #, stringAsFactors = TRUE)
+
+train <- train %>%
+  mutate(
+    MSZoning1 = case_when(
+      MSZoning == 'C' ~ 1,
+      MSZoning == 'FV' ~ 2,
+      MSZoning == 'RH' ~ 3,
+      MSZoning == 'RL' ~ 4,
+      MSZoning == 'RM' ~ 5
+    )
+  )
+
+train <- train %>%
+  mutate(
+    MSZoning2 = case_when(
+      MSZoning1 == 4 ~ 0,
+      MSZoning1 == c(1,2,3,5) ~ 1,
+    )
+  )
+
+# figure out how to do find and replace in Excel
+
+#train <- train %>%
+#  mutate(
+#    LotFrontageSw = case_when(
+#      LotFrontage == 0 ~ 0,
+#      LotFrontage != 0 ~ 1
+#    )
+#  )
+```
+
+The code that can be opened above shows that I created a couple switches based on categories in MSZoning that stood out. These will be used in the regression. My goal is to use a high-dimensional model to predict the trend of house prices.
+
+## The Regression and Interpretation
+
+Below is the HD model I put together. As you can see, all the variables are significant, and the adjusted R-squared is 0.797, indicating that this model is a good fit for the data.
+
+```{r, warning = FALSE, message = FALSE}
+View(train)
+
+#lm.1stflr <- lm(SalePrice ~ X1stFlrSF, data=train)
+#summary(lm.1stflr)
+
+#lm.alley <- lm(SalePrice ~ Alley, data=train)
+#summary(lm.alley)
+
+#lm.fence <- lm(SalePrice ~ Fence, data=train)
+#summary(lm.fence)
+
+#lm.1stflr <- lm(SalePrice ~ X1stFlrSF, data=train)
+#summary(lm.1stflr)
+
+#lm.2ndflr <- lm(SalePrice ~ X2ndFlrSF, data=train)
+#summary(lm.2ndflr)
+
+#lm.basement <- lm(SalePrice ~ TotalBsmtSF, data=train)
+#summary(lm.basement)
+
+total.lm <- lm(SalePrice ~ X1stFlrSF + X2ndFlrSF + OverallQual + YearRemodAdd + MasVnrArea + BsmtQual + BsmtFinSF1 + BsmtFinSF2 + GarageArea + MSZoning2 + MSZoning1, data = train)
+pander(summary(total.lm))
+
+#Put them all together into a high dimensional multiple regression model
+
+#lm.sqft.all <- lm(SalePrice ~ X1stFlrSF + X2ndFlrSF + TotalBsmtSF, data=train)
+#summary(lm.sqft.all)
+
+#Or use mutate and create a new "TotalSF" variable that allows for a simple linear regression model that is just as powerful, but far easier to graph and interpret.
+
+#train <- train %>%
+#  mutate(TotalSF = X1stFlrSF + X2ndFlrSF + TotalBsmtSF)
+
+#lm.sqft <- lm(SalePrice ~ TotalSF, data=train)
+#summary(lm.sqft)
+
+#ggplot(train, aes(x = X1stFlrSF, y = SalePrice, col = as.factor(MSZoning))) +
+#  geom_point(pch = 1) +
+#  scale_color_manual(values = c('red', 'blue', 'purple', 'green', 'orange'))
+
+
+
+#plot(SalePrice ~ MSZoning1, data = train)
+#abline(lm.sqft)
+#plot(lm.sqft, which = 1) 
+#plot(lm.sqft$res ~ ., data = train)
+
+#Notice as well how mutate can be used to change complicated variables into simple on-off switches.
+
+#train <- train %>%
+#  mutate(TotalSF = X1stFlrSF + X2ndFlrSF + TotalBsmtSF,
+#                RichNbrhd = case_when(Neighborhood %in% c("StoneBr", "NridgHt", "NoRidge") ~ 1,
+#                                                          TRUE ~ 0))
+
+#lm.sqft.rich <- lm(SalePrice ~ TotalSF + RichNbrhd + TotalSF:RichNbrhd, data=train)
+#summary(lm.sqft.rich)
+```
+
+*(intercept):* For homes with no square footage, the predicted price is -643,700 dollars.
+
+*X1stFlrSF:* For every square foot increase in first floor surface area, the predicted price of the home goes up by 55.27 dollars.
+
+*X2ndFlrSF:* For every square foot increase in second floor surface area, the predicted price of the home goes up by 47.65 dollars.
+
+*OverallQual:* For every increment increase in overall material and finish of the house (on a ten-point scale), the predicted price of the home goes up by 18,980 dollars.
+
+*YearRemodAdd:* For every year increase in date of remodel (or construction if not remodeled), the predicted price of the home goes up by 340.10 dollars.
+
+*MasVnrArea:* For every square foot increase in the area of the masonry veneer, the average value of the home goes up by 31.96 dollars.
+
+*BsmtQualFa:* For a basement height of 70-79 inches, the average value of the home goes down by 53,090 dollars from the price of a home with a basement height of over 100 inches.
+
+*BsmtQualGd:* For a basement height of 90-99 inches, the average value of the home goes down by 45,010 dollars from the price of a home with a basement height of over 100 inches.
+
+*BsmtQualNo Basement:* For a home without a basement, the average value of it goes down by 55,340 dollars from the price of a home with a basement height over 100 inches.
+
+*BsmtQualTA:* For a basement height of 80-89 inches, the average value of the home goes down by 51,740 dollars from the price of a home with a basement height of over 100 inches.
+
+*BsmtFinSF1:* For every square foot increase in the area of the type 1 basement finish, the average price of the home increased by 17.69 dollars.
+
+*BsmtFinSF2:* For every square foot increase in the area of the type 2 basement finish, the average price of the home increased by 14.42 dollars.
+
+*GarageArea:* For every square foot increase in the garage area, the predicted price of the home went up by 30.76 dollars.
+
+*MSZoning2:* For each increase in a scale of general zoning classification of the home's sale, the price went down by 16,220 dollars.
+
+*MSZoning1:* When the general zoning classification is anything other than residential low density, the predicted price of the home goes down by 6,338 dollrs, as opposed to the predicted price of a residential low density home.
+
+
+## Visualization
+
+I visualized the model with a combination of 2D graphs for every variable I included. I also colored them by the BsmtQual factor, so I could see the relationship it has with each variable, which is usually well-defined.
+
+The plot below shows a positive trend between sale price and square footage of the home's first floor.
+
+```{r, message = FALSE, warning = FALSE}
+train <- train %>%
+  mutate(
+    Fa = case_when(
+      BsmtQual == 'Fa' ~ 1,
+      BsmtQual != 'Fa' ~ 0
+    ))
+train <- train %>%
+  mutate(
+    Gd = case_when(
+      BsmtQual == 'Gd' ~ 1,
+      BsmtQual != 'Gd' ~ 0
+    ))
+train <- train %>%
+  mutate(
+    NoBa = case_when(
+      BsmtQual == 'NoBa' ~ 1,
+      BsmtQual != 'NoBa' ~ 0
+    ))
+train <- train %>%
+  mutate(
+    TA = case_when(
+      BsmtQual == 'TA' ~ 1,
+      BsmtQual != 'TA' ~ 0
+    ))
+
+plot(SalePrice ~ X1stFlrSF, data = train, col = as.factor(BsmtQual), main = 'X1stFlrSF')
+b <- coef(total.lm)
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*X1stFlrSF + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'X1stFlrSF', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+
+```
+
+The plot below shows a positive trend between sale price and square footage of the home's second floor, given that the home has a second floor.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ X2ndFlrSF, data = train, col = as.factor(BsmtQual), main = 'X2ndFlrSF')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*X2ndFlrSF + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'X2ndFlrSF', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+The plot below shows a strong positive trend between sale price and overall quality (on a scale of 1 to 10).
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ OverallQual, data = train, col = as.factor(BsmtQual), main = 'OverallQual')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*OverallQual + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'OverallQual', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+This plot below shows a general upward trend between year last remodeled (or year built if not remodeled). This trend could be clearer with a transformation.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ YearRemodAdd, data = train, col = as.factor(BsmtQual), main = 'YearRemodAdd')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*YearRemodAdd + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'YearRemodAdd', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+The plot below shows a positive trend between sale price and masonry veneer area (in square feet).
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ MasVnrArea, data = train, col = as.factor(BsmtQual), main = 'MasVnrArea')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*MasVnrArea + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'MasVnrArea', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+This boxplot shows where the sale price lands for different categories of basement condition. Notice that excellent basement condition (Ex) is much higher than the rest of the categories, and for obvious reason. Other categories include fair (Fa), good (Gd), typical (TA), and no basement (which is the blank category).
+
+```{r, message = FALSE, warning = FALSE}
+boxplot(SalePrice ~ BsmtQual, data = train, main = 'BsmtQual')
+```
+
+This plot below shows an upward trend with a high slope between sale price and the square footage of the first type of basement finish. If the homes without this particular basement finish were taken out, I think we would have stronger significance and a more obvious trend.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ BsmtFinSF1, data = train, col = as.factor(BsmtQual), main = 'BsmtFinSF1')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*BsmtFinSF1 + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'BsmtFinSF1', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+This plot below shows no particular trend, but it does show that the sale price drops drastically when homes do have this particular basement finish.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ BsmtFinSF2, data = train, col = as.factor(BsmtQual), main = 'BsmtFinSF2')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*BsmtFinSF2 + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'BsmtFinSF2', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+The plot below shows a strong positive trend between sale price and square footage of its garage. Even when the homes without garages are included, the trend is still strong.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ GarageArea, data = train, col = as.factor(BsmtQual), main = 'GarageArea')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*GarageArea + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'GarageArea', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+This plot below shows that residential low density (0) housing tends to have a greater sale price than any other kind of market category (1).
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ MSZoning2, data = train, col = as.factor(BsmtQual), main = 'MSZoning2')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*MSZoning2 + b[15]*mean(train$MSZoning1, na.rm = TRUE), add = TRUE, xname = 'MSZoning2', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+This plot also supports the claim above that residential low density housing (4) has a greater sale price than the other categories of housing.
+
+```{r, message = FALSE, warning = FALSE}
+plot(SalePrice ~ MSZoning1, data = train, col = as.factor(BsmtQual), main = 'MSZoning1')
+
+drawit <- function(Fa = 0, Gd = 0, NoBa = 0, TA = 0, i){
+  curve(b[1] + b[2]*mean(train$X1stFlrSF) + b[3]*mean(train$X2ndFlrSF) + b[4]*mean(train$OverallQual) + b[5]*mean(train$YearRemodAdd) + b[6]*mean(train$MasVnrArea, na.rm = TRUE) + b[7]*Fa + b[8]*Gd + b[9]*NoBa + b[10]*TA + b[11]*mean(train$BsmtFinSF1) + b[12]*mean(train$BsmtFinSF2) + b[13]*mean(train$GarageArea) + b[14]*mean(train$MSZoning2, na.rm = TRUE) + b[15]*MSZoning1, add = TRUE, xname = 'MSZoning1', col = palette()[i])
+}
+
+drawit(0,0,0,0,1)
+drawit(1,0,0,0,2)
+drawit(0,1,0,0,3)
+drawit(0,0,1,0,4)
+drawit(0,0,0,1,5)
+```
+
+
+
+## Validation
+
+The validation below shows the R-squared and adjusted R-squared from the high dimensional regression I did earlier (in 'The Regression and Interpretation' tab), and the validation adjusted R-squared of 0.8306 indicates that it is a good model for the data.
+
+```{r, warning = FALSE, message = FALSE}
+set.seed(171)
+
+num_rows <- 1000 #1460 total
+keep <- sample(1:nrow(train), num_rows)
+
+mytrain <- train[keep, ] #Use this in the lm(..., data=mytrain) it is like "rbdata"
+
+mytest <- train[-keep, ] #Use this in the predict(..., newdata=mytest) it is like "rbdata2"
+```
+
+```{r, warning = FALSE, message = FALSE}
+ mylm <- lm(SalePrice ~ X1stFlrSF + X2ndFlrSF + OverallQual + YearRemodAdd + MasVnrArea + BsmtQual + BsmtFinSF1 + BsmtFinSF2 + GarageArea + MSZoning2 + MSZoning1, data = train)
+ 
+ yhtrue <- predict(mylm, newdata=mytest, na.rm = TRUE)
+  
+  # Compute y-bar
+  ybar <- mean(mytest$SalePrice, na.rm = TRUE) #Yi is given by Ynew from the new sample of data
+  
+  # Compute SSTO
+  SSTO <- sum( (mytest$SalePrice - ybar)^2 )
+  
+  # Compute SSE for each model using y - yhat
+  SSEt <- sum( (mytest$SalePrice - yhtrue)^2 , na.rm = TRUE)
+  
+  # Compute R-squared for each
+  rst <- 1 - SSEt/SSTO
+  
+  # Compute adjusted R-squared for each
+  n <- length(mytest$SalePrice) #sample size
+  pt <- length(coef(mylm)) #num. parameters in model
+  rsta <- 1 - (n-1)/(n-pt)*SSEt/SSTO
+  
+
+my_output_table2 <- data.frame(Model = "My Model", `Original R2` = summary(mylm)$r.squared, `Orig. Adj. R-squared` = summary(mylm)$adj.r.squared, `Validation R-squared` = rst, `Validation Adj. R^2` = rsta)
+
+colnames(my_output_table2) <- c("Model", "Original $R^2$", "Original Adj. $R^2$", "Validation $R^2$", "Validation Adj. $R^2$")
+
+knitr::kable(my_output_table2, escape=TRUE, digits=4)
+```
+

@@ -1,0 +1,184 @@
+---
+title: "Sampling Distributions Unveiled"
+output:
+  html_document:
+    theme: readable
+    code_folding: hide
+date: "2023-05-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+CarPrices <- read_excel("Data/CarPrices.xlsx")
+b1_predict <- read_excel("Data/b0_predictions.xlsx")
+
+car.lm <- lm(Price ~ Mileage, data = CarPrices)
+```
+
+# {.tabset}
+
+```{r, echo = FALSE, eval = FALSE}
+
+## Class Notes (Wednesday)
+
+-variability of predicted y-int deps on how far away it is from the data
+-change sigma, change sample size (n), and zoom in/out all change variability of the line
+  -in other words, n, sigma, and spread of x affect variability
+-constant variance (sigma^2) is est. by MSE (mean squared error)
+-standard error of b1 tells us how far away it will be from beta 1 (estimate)
+-b1 = rise/run
+-sigma^2 measures variability in the rise
+-confint(mylm)
+-s^b^0  measures the spread of the normal sampling distribution of b^0, which is centered around beta^0
+  -counts how many standard errors the specific b^0 is from our hypothesized beta^0
+-for sampling distributions, standard errors are very important to understand
+-as we increase degrees of freedom, the t dist approaches the normal dist
+-percentile is area
+-quantile is t-value (also called critical value)
+-alpha value is probability of type 1 error
+-5% of the time when the null hypothesis is true, you will reject it
+-alpha is the shaded area and t* is the quantile where it starts
+-we know the spread and the b value, but not the true beta value. therefore, we center the normal distribution around the null hypothesis
+-explanation of confidence interval: the confidence that our value is within 2 standard errors of the truth (or null)
+-if 95% of our results have truth, 5% will be outside the truth (misleading)
+-sb0 is standard deviation of the beta-centered distribution
+```
+
+## Introduction
+
+For this theory assignment, we will unveil sampling distributions, their p-values, and their confidence levels. Understanding the interconnected relationship of all these aspects is essential to understanding and interpreting linear regressions.
+
+We will be using a mix of generated sets of data and data of car mileage vs car price, which can be seen below:
+
+```{r, warning=FALSE, message=FALSE}
+library(DT)
+datatable(CarPrices)
+```
+
+## Sampling Distributions
+
+At its simplest definition, a sampling distribution is a collection of samples. In a 1-sample t-test, for example, we could show the distribution of information in a histogram. However, in linear regression, we are concerned with the sampling distributions for $b_0$ and $b_1$. $b_0$ is an estimate of $\beta_0$, which is the y-intercept of the true regression line. $b_1$ is an estimate of $\beta_0$, the slope of the true regression line.
+
+How do we create these distributions? Theoretically, one would collect numerous linear regression points, group them up randomly, and find $b_0$ and $b_1$ for each group. Then, we could display those values in histograms that center around the true values of $\beta_0$ and $\beta_1$--they would simply land in the middle of each histogram randomly, being the mean for its distribution. The standard deviation of the histograms is also called the standard error, or $s_{b_0}$/$s_{b_1}$ depending on the graph you are concerned with. The standard error measures the spread of the distributions of $b_0$s and $b_1$s. Typically 95% of data will land within 2 standard errors of the mean.
+
+```{r,warning=FALSE, message = FALSE}
+N <- 10000  
+#storage <- rep(NA, N)
+#storage
+#for (i in 1:N){
+#  storage[i] <- 2*i
+#}
+#storage
+storageb0 <- rep(NA, N)
+storageb1 <- rep(NA, N)
+
+for (i in 1:N){
+  n <- 40
+Xi <- rep(seq(30, 100, length.out=n/2), each=2) #n must be even.
+#rnorm(n,40000,10000)
+Yi <- 2.5 + 3*Xi + rnorm(n, 0, 1.2)
+  mylm <- lm(Yi ~ Xi)
+coef(mylm)
+storageb0[i] <- coef(mylm)[1] #intercept only
+storageb1[i] <- coef(mylm)[2] #slope only
+}
+
+hist(storageb0, main = 'b0 Distribution', xlab = 'b0')
+#text(x=3.5, y=9000, "this is my text", col = 'blue')
+abline(v = 2.5, col = 'blue')
+hist(storageb1, main = 'b1 Distribution', xlab = 'b1')
+abline(v = 3, col = 'blue')
+```
+
+The blue lines in the histograms above are $\beta_0$ and $\beta_1$. As you can see, the two graphs have different centers and spreads.
+
+In single linear regressions, how do we obtain each histogram with its respective statistics? Since we don't have a sample of $b_0$/$b_1$s that could be used to obtain a $\beta$, we center the distribution around the null hypothesis so we can compare our obtained b with it and see if it is inaccurate and needs to change. The $s{b_0}$ can be found by using this equation:
+
+$$
+  s_{b_0}^2 = MSE [{\frac{1}{n}}+{\frac{\bar{X}^2}{\sum(X_i-\bar{X})^2}}]
+$$
+
+This equation factors in MSE (mean squared error), the sample size, the spread of the x variable, and the distance the majority of the dots are from the y-axis. These all affect the range where y-intercepts could land. The ${s_b}_1$ can be found by using this equation:
+
+$$
+  s_{b_1}^2 = \frac{MSE}{\sum(X_i-\bar{X})^2}
+$$
+
+This equation factors in MSE (mean squared error) and the spread of the x variable, which both factor into where the slope could land.
+
+The $s{b_0}$ and ${s_b}_1$ can also be found in the summary output of a linear regression, under Std. Error and aligning with (Intercept) and Mileage (or whatever variable you are using) respectively. In the following example, the values are 1008 and 0.01104 respectively.
+
+```{r, warning=FALSE, message = FALSE}
+library(pander)
+pander(summary(car.lm))
+```
+
+## P-values
+
+Demonstrate how the standard errors of the sampling distributions for both the slope and intercept estimates are used to obtain p-values for the tests of hypotheses about beta 0
+and beta 1
+(the true intercept and slope of the regression model). Discuss why this works. Reveal the logic behind the p-value.
+
+In linear regressions following 1 set of data, we can predict the spread of $b_0$ and $b_1$ distributions and set them with the hypotheses as the centers. For an example, we will focus on the slope of the car price distribution. Since our regression gives us a null hypothesis and a spread for all the possible slopes from different distributions, we can construct a hypothetical histogram to show the predicted difference between our null hypothesis and the slope we got in this particular regression.
+
+```{r, warning=FALSE, message = FALSE}
+
+hist(b1_predict$b1, main = 'Distibution Given Null Hypothesis is True', xlab = 'Slope of Regression (b1)')
+abline(v = 0, col = 'blue')
+abline(v = -0.2401, col = 'green')
+```
+
+The blue line represents the null hypothesis that the slope is 0, and the slope we got, -0.2401, doesn't even show up on this histogram. According to our standard error, we are 21.75 standard errors below the null hypothesis, also known as our t-value (look for t value in the Mileage row).
+
+```{r, warning=FALSE, message = FALSE}
+
+pander(summary(car.lm))
+```
+
+You can also compute the t-value with the following formulas:
+
+$$
+  t = \frac{b_0 - \overbrace{0}^\text{$H_0$ or $\beta_0$}}{s_{b_0}}
+$$
+
+$$
+  t = \frac{b_1 - \overbrace{0}^\text{$H_1$ or $\beta_1$}}{s_{b_1}}
+$$
+
+
+Now that we have our t-value, how do we get our p-value? The p-value is defined as the probability of getting a $b_0$ or $b_1$ with whatver is the center for our distribution. In other words, it is the area under the normal distribution at and past the value that we get. So, for this example, it is the area to the left of our green line in the histogram. P-values can also be found under the the 'Pr(>|t|)' column in our regression summary. For the slope term, our p-value is 2.17e-28, which is significant because it is smaller that 0.05, our confidence level.
+
+
+## Confidence Intervals
+
+A 0.05 level of confidence is displayed below--95% of of results should land in between the purple lines, given that the center mean is the true value. When we get a p-value smaller than 0.05, that means it is either one of the rare 5%, or it proves that the center mean should be changed.
+
+```{r, warning=FALSE, message = FALSE}
+
+hist(b1_predict$b1, main = 'Distibution Given Null Hypothesis is True', xlab = 'Slope of Regression (b1)')
+abline(v = -0.02213, col = 'purple')
+abline(v = 0.02213, col = 'purple')
+```
+
+Demonstrate how the standard errors are also used to create confidence intervals for the true regression intercept, 
+, and true regression slope, 
+. Explain what a confidence interval really is... explain why it captures the true parameter values "95% of the time."
+
+To create confidence intervals for distributions centered around $\beta_0$ and $\beta_1$, follow these formulas:
+
+$$
+  b_1 \pm t_{n-2}^{*} * s_{b_1}
+$$
+
+$$
+  b_0 \pm t_{n-2}^{*} * s_{b_0}
+$$
+Where t* is the t-value corresponding with our confidence level (typically 0.05).
+
+As you can see, the confidence interval is taken by multiplying the standard error with t* and then adding and subtracting it from our $b_0$ or $b_1$ to get a range, or interval. Since the t-value corresponds with how many standard errors of distance there is from the center, it makes sense that we multiply it with our standard error to convert it back to our normal units, making it easier to understand.
+

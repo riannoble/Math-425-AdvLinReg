@@ -1,0 +1,217 @@
+---
+title: "CarPrices"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+date: "2023-05-06"
+---
+# {.tabset}
+
+```{r, warning=FALSE, message=FALSE}
+library(readxl)
+library(pander)
+library(tidyverse)
+library(directlabels)
+library(car)
+library(DT)
+CarPrices <- read_excel("Data/CarPrices.xlsx")
+View(CarPrices)
+
+car.lm <- lm(Price ~ Mileage, data = CarPrices)
+carlog.lm <- lm(log(Price) ~ Mileage, data = CarPrices)
+```
+
+## Final Graphic and Prediction
+
+```{r, warning=FALSE, message=FALSE}
+b.log <- coef(carlog.lm)
+
+xh = 160000
+p.i <- exp(predict(carlog.lm, data.frame(Mileage = xh), interval = 'prediction'))
+
+ggplot(CarPrices, aes(x = Mileage, y = Price)) +
+  geom_point() +
+  stat_function(fun = function(x) exp(b.log[1] + b.log[2]*x)) +
+  theme_bw() +
+  geom_point(aes(x=120000, y=7000), size = 3, colour="red") +
+  geom_text(x = 120000, y = 6000, label = 'Vehicle of Interest (120,000,7,000)', color = 'red') +
+  geom_point(aes(x = 160000, y = 9307.25), size = 3, colour = 'red') +
+  geom_text(x = 161000, y = 11000, label = 'Ideal Selling Point (160,000, 9307.25)', color = 'red') +
+  geom_segment(aes(x = 120000, xend = 160000, y = 7000, yend = 9307.25), col = 'red') +
+  geom_segment(aes(x=160000, xend=160000, y=p.i[2], yend=p.i[3]), color = 'skyblue', lwd = 1) +
+  labs(title = 'Trend Between Used Toyota Venza Price and Mileage', x = 'Mileage', y = 'Price') +
+  xlim(c(0, 200000))
+
+pander(exp(predict(carlog.lm, data.frame(Mileage = xh), interval = 'prediction')))
+```
+
+The chart above gives the prediction interval for selling a car at a mileage of 160,000. It is the region in which 95% of used cars will sell for, easily visualized by the light blue line on the graph. The chart gives the point on the line for that mileage, as well as the minimum and maximum for the light blue line.
+
+```{r, warning=FALSE, message=FALSE}
+pr <- predict(carlog.lm, data.frame(Mileage = 160000))
+exp(pr)
+```
+
+I used a logarithmic transformation of the factor of price to model the trend between car price and mileage. The red dot labeled 'Vehicle of Interest' represents the car I used in high school, specifically when my family bought it. It had a mileage of 120,000 and a price of 7,000 dollars. The ideal selling point is the red dot to the right of the vehicle of interest, connected by a line.
+
+## Conclusion
+
+It looks like a logarithmic transformation was the best plan to raise the $R^2$, as was shown in the analysis portion on the study. Typically, a car's price will go down as its mileage rises. As for the obvious rise in price, my car was bought in 2019, right before inflation and the rise in general car prices. In this case, my car rose in value. I decided that the ideal selling point would be somewhere before the mileage at which these cars stop selling (~160,000 miles). Therefore, the point is 160,00 miles with a price of 9,307.25 dollars (which came from the prediction under the final graphic).
+
+The best dollar-pre-mile value would be obtained by selling my car immediately, but that is not a realistic approach because I want to use the car. Up until 170,000 miles (when sales do not exist), selling my car will always make me money. To get the most mileage out of my car and still sell at a good price and make money, I would sell just before the cutoff in the sales for this particular car. With this strategy, I would be making ~19 cents per mile (difference in price / difference in mileage in both red points).
+
+## Introduction
+
+I collected data on price and mileage of Toyota Venzas from the following link. https://cars.ksl.com/search/make/Toyota/model/Venza
+
+I chose Toyota Venzas because that is the type of car I drove in high school and the one I will be placing in the model. I am modeling this to find an ideal time to sell it.
+
+My main question for this study is: Is the relationship between Price and Mileage of used Toyota Venzas linear, or is there a better model for the relationship? Also, can a regression model help me to find an ideal selling point for my own car?
+
+In this study, I will model a linear regression as well as a transformation of it to determine which is more accurate to the data.
+
+## The Data
+
+These are all the listings of used Toyota Venzas for sale on May 5th.
+
+```{r, warning=FALSE, message=FALSE}
+datatable(CarPrices)
+```
+
+## Additional Graphics
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(CarPrices, aes(x = Mileage, y = Price)) +
+  geom_point() +
+  stat_function(fun = function(x) exp(b.log[1] + b.log[2]*x), col = 'blue') +
+  stat_smooth(method = "lm",
+              formula = y ~ x,
+              geom = "smooth", se = FALSE, col = 'black') +
+  theme_bw() +
+  labs(title = 'Trend Between Used Toyota Venza Price and Mileage', x = 'Mileage', y = 'Price')
+```
+
+The first model that I tried was the linear model (black). You can see that it doesn't do the best job at following the path of the points, and would only be adequate at predicting the beginning and end of the graph. However, the logarithmic model (blue) follows the path a bit better (although not perfectly) and would be better at predicting the graph as a whole. The linear model is also flawed in the fact that it predicts that cars could get so old that you have to pay to get rid of them, which is completely incorrect--cars will always have value, even when you send them to the scrapyard. Therefore, a logarithmic model in which cars will never obtain a negative value makes more sense.
+
+## Analysis
+
+We are attempting to predict the price of Toyota Venzas on the basis of mileage using a linear regression. We are specifically using this framework:
+
+$$
+  \underbrace{Y_i}_\text{Price} = \beta{_0} + \beta{_1} \underbrace{X_i}_\text{Mileage} + \epsilon{_i} \text{ where } \epsilon{_i} ~ N(0,\sigma^2)
+$$
+We will be concerned with both the slope and the intercept of this regression. The hypotheses for those respectively are:
+$$
+  H_0: \beta{_0} = 0
+$$
+$$ 
+  H_a: \beta{_0} \neq 0
+$$
+$$
+  H_0: \beta{_1} = 0
+$$
+$$ 
+  H_a: \beta{_1} \neq 0
+$$
+$$ 
+  \alpha = 0.05
+$$
+Both sets of hypotheses will use a significance value of 0.05.
+```{r, warning=FALSE, message=FALSE}
+pander(summary(car.lm))
+```
+
+The model with the estimated intercept and slope values:
+$$
+\underbrace{\hat{Y_i}}_\text{Price} = 44344 -0.2401 \underbrace{X_i}_\text{Mileage}
+$$
+The $R^2$ value for the linear test is decent, but with the state of the graph and the fit of the regression, I think we can do better. The logarithmic models for the transformation are below. They both mean the exact same thing, but two forms are shown for better understanding.
+$$
+  \underbrace{Y_i}_\text{Price} = e ^ {\beta{_0} + \beta{_1} \underbrace{X_i}_\text{Mileage} + \epsilon{_i} \text{ where } \epsilon{_i} ~ N(0,\sigma^2)}
+$$
+$$
+  log(\underbrace{Y_i}_\text{Price}) = \beta{_0} + \beta{_1} \underbrace{X_i}_\text{Mileage} + \epsilon{_i} \text{ where } \epsilon{_i} ~ N(0,\sigma^2)
+$$
+
+
+The regression results for the logarithmic transformation:
+```{r, warning=FALSE, message=FALSE}
+pander(summary(carlog.lm))
+```
+The estimated regression equation for the transformed model are below. Again, they both mean the same exact thing.
+
+$$
+  \underbrace{Y_i}_\text{Price} = e ^ {10.77 - 1.021e-05 \underbrace{X_i}_\text{Mileage}}
+$$
+
+$$
+  log(\underbrace{\hat{Y_i}}_\text{Price}) = 10.77 - 1.021e-05 \underbrace{X_i}_\text{Mileage}
+$$
+
+## Interpretation
+
+### Linear Model
+
+Using our alpha value of 0.05 and the linear model, we conclude that the slope and intercept are statistically significant (p-values of 2.17e-28 and 5.56e-28 respectively).
+
+The slope tells us that for every 1 mile increase in mileage (x), the amount of change in the average logarithm of price (average y-value) is -1.021e-05. This means that the actual price will decrease by 1-exp(-1.021x-05*1000) = 0.01015805 or 1% of each 1,000 miles driven.
+
+The intercept tells us that when a Toyota Venza is brand new, it will cost 44,344 dollars.
+
+We also get a $R^2$ value of 0.8976, which is already good, but I think I can do better with a transformation.
+
+### Transformed Logarithmic Model
+
+Using our alpha value of 0.05 and the new transformed model, we can conclude that the slope and intercept are significant (p-values of 4.745e-31 and 1.828e-87 respectively).
+
+The slope tells us that for every 1 mile increase in mileage (x), the amount of change in the average logarithm of price (average y-value) is -1.021e-05.
+
+The intercept tells us that at a mileage of 0 (a Toyota Venza is brand new), the log(price) will be 10.77, meaning that the price will be 47,572 dollars.
+
+The $R^2$ value for this regression is 0.9183, which is even better than the linear test. I think this proves as a better model for the data.
+
+## Appropriateness of the Regressions
+
+Plots for the linear regression:
+
+```{r, warning=FALSE, message=FALSE}
+car.lm <- lm(Mileage ~ Price, data = CarPrices)
+par(mfrow=c(1,3))
+plot(car.lm, which=1:2)
+plot(car.lm$residuals, main="Residuals vs Order", xlab="",
+     ylab="Residuals")
+```
+
+The Residuals vs Fitted plot indicates that the data may not be linear, as well as issues with constant variance, as the data spreads out at the end. The Q-Q plot indicates that the residuals are roughly normal, with a little bit of deviation at the ends, as well as a few outliers. The Residuals vs Order plot indicates that the error terms are independent, as there is no pattern. Since the first plot is the most important, our logarithmic transformation is an attempt to give it a straight line, indicating that there is a linear relationship between the transformed data.
+
+Plots for the transformed logarithmic regression:
+
+```{r, warning=FALSE, message=FALSE}
+carlog.lm <- lm(log(Mileage) ~ Price, data = CarPrices)
+par(mfrow=c(1,3))
+plot(carlog.lm, which=1:2)
+plot(carlog.lm$residuals, main="Residuals vs Order", xlab="",
+     ylab="Residuals")
+```
+
+The Residuals vs Fitted plot shows that we now have a great linear relationship, but now the constant variance is even more off, with lots of variance at the beginning and little variance at the end. The Q-Q plot indicates that the residuals do not have a normal distribution, and may indicate a heavy-tailed distribution instead. Finally, the Residuals vs Order plot does not obviously show a pattern, but there could be a bit of pattern/bias in the residuals.
+
+## Appendix
+
+To determine what type of transformation would be best for correcting the linearity of the data, I performed a boxcox test:
+
+```{r, warning=FALSE, message=FALSE}
+boxCox(car.lm)
+```
+
+The ideal transformation for this boxcox test result would be either the square root (0.5) or no (1) transformation. However, I performed a log transformation because it has great value in its interpretation. This transformation would adhere to the following model:
+
+$$
+  \underbrace{Y_i}_\text{Price} = e ^ {\beta{_0} + \beta{_1} \underbrace{X_i}_\text{Mileage} + \epsilon{_i} \text{ where } \epsilon{_i} ~ N(0,\sigma^2)}
+$$
+$$
+  log(\underbrace{Y_i}_\text{Price}) = \beta{_0} + \beta{_1} \underbrace{X_i}_\text{Mileage} + \epsilon{_i} \text{ where } \epsilon{_i} ~ N(0,\sigma^2)
+$$
+
+
